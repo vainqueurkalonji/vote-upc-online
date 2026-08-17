@@ -575,10 +575,9 @@ class Etudiant extends Modele
              SET mot_de_passe_temporaire_envoye = :envoye
              WHERE id = :id"
         );
-        $requete->execute([
-            'envoye' => $envoye,
-            'id' => $activationId,
-        ]);
+        $requete->bindValue('envoye', $envoye, \PDO::PARAM_BOOL);
+        $requete->bindValue('id', $activationId, \PDO::PARAM_INT);
+        $requete->execute();
     }
 
     public function importerDepuisExcel(string $cheminFichier, int $importeParId): array
