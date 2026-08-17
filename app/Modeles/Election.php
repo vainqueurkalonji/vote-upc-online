@@ -607,7 +607,11 @@ class Election extends Modele
                 c.nom,
                 c.post_nom,
                 c.prenom,
-                c.photo_chemin,
+                CASE
+                    WHEN c.photo_base64 IS NOT NULL AND c.photo_base64 <> ''
+                    THEN '/candidats/photo?id=' || c.id::text
+                    ELSE c.photo_chemin
+                END AS photo_chemin,
                 c.slogan,
                 f.code AS faculte_code,
                 p.code AS promotion_code,

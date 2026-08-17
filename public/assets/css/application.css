@@ -655,7 +655,14 @@ small {
 
 .formulaire-ligne {
     display: inline-flex;
+    align-items: center;
+    gap: 6px;
     margin: 0;
+}
+
+.formulaire-ligne input[type="file"] {
+    max-width: 190px;
+    font-size: 12px;
 }
 
 .bouton-tableau {

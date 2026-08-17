@@ -422,8 +422,8 @@ class ControleurModule extends Controleur
         $modele = new Candidat();
         $donnees = $this->donneesCandidatDepuisPost();
         $erreurs = $this->validerDonneesCandidat($donnees);
-        $photoChemin = null;
-        $imageVisionChemin = null;
+        $photoMedia = null;
+        $imageVisionMedia = null;
 
         if (empty($erreurs)) {
             try {
@@ -434,8 +434,8 @@ class ControleurModule extends Controleur
         }
 
         if (empty($erreurs)) {
-            $photoChemin = $this->deposerImageCandidat('photo_candidat', 'candidats', $erreurs);
-            $imageVisionChemin = $this->deposerImageCandidat('image_vision', 'visions-candidats', $erreurs);
+            $photoMedia = $this->deposerImageCandidat('photo_candidat', 'candidats', $erreurs);
+            $imageVisionMedia = $this->deposerImageCandidat('image_vision', 'visions-candidats', $erreurs);
         }
 
         if (!empty($erreurs)) {
@@ -444,14 +444,24 @@ class ControleurModule extends Controleur
             rediriger('/super-administrateur/candidats?election_id=' . urlencode((string) ($donnees['election_id'] ?? '')));
         }
 
-        $donnees['photo_chemin'] = $photoChemin;
-        $donnees['image_vision_chemin'] = $imageVisionChemin;
+        if ($photoMedia !== null) {
+            $donnees['photo_base64'] = $photoMedia['base64'];
+            $donnees['photo_type_mime'] = $photoMedia['type_mime'];
+            $donnees['photo_nom'] = $photoMedia['nom'];
+        }
+
+        if ($imageVisionMedia !== null) {
+            $donnees['image_vision_base64'] = $imageVisionMedia['base64'];
+            $donnees['image_vision_type_mime'] = $imageVisionMedia['type_mime'];
+            $donnees['image_vision_nom'] = $imageVisionMedia['nom'];
+        }
 
         try {
             $modele->creer($donnees, (int) $utilisateur['id']);
             $_SESSION['candidat_message_succes'] = "Candidat cree avec succes et rattache a l'election choisie.";
         } catch (\Throwable $exception) {
             $_SESSION['candidat_message_erreur'] = 'Creation du candidat impossible : ' . $exception->getMessage();
+            $this->retirerMediasCandidatDesDonnees($donnees);
             $_SESSION['candidat_anciennes_donnees'] = $donnees;
         }
 
@@ -472,8 +482,8 @@ class ControleurModule extends Controleur
 
         $donnees = $this->donneesCandidatDepuisPost();
         $erreurs = $this->validerDonneesCandidat($donnees);
-        $photoChemin = null;
-        $imageVisionChemin = null;
+        $photoMedia = null;
+        $imageVisionMedia = null;
 
         if (empty($erreurs)) {
             try {
@@ -488,8 +498,8 @@ class ControleurModule extends Controleur
         }
 
         if (empty($erreurs)) {
-            $photoChemin = $this->deposerImageCandidat('photo_candidat', 'candidats', $erreurs);
-            $imageVisionChemin = $this->deposerImageCandidat('image_vision', 'visions-candidats', $erreurs);
+            $photoMedia = $this->deposerImageCandidat('photo_candidat', 'candidats', $erreurs);
+            $imageVisionMedia = $this->deposerImageCandidat('image_vision', 'visions-candidats', $erreurs);
         }
 
         if (!empty($erreurs)) {
@@ -498,12 +508,16 @@ class ControleurModule extends Controleur
             rediriger('/super-administrateur/candidats?modifier_id=' . $candidatId);
         }
 
-        if ($photoChemin !== null) {
-            $donnees['photo_chemin'] = $photoChemin;
+        if ($photoMedia !== null) {
+            $donnees['photo_base64'] = $photoMedia['base64'];
+            $donnees['photo_type_mime'] = $photoMedia['type_mime'];
+            $donnees['photo_nom'] = $photoMedia['nom'];
         }
 
-        if ($imageVisionChemin !== null) {
-            $donnees['image_vision_chemin'] = $imageVisionChemin;
+        if ($imageVisionMedia !== null) {
+            $donnees['image_vision_base64'] = $imageVisionMedia['base64'];
+            $donnees['image_vision_type_mime'] = $imageVisionMedia['type_mime'];
+            $donnees['image_vision_nom'] = $imageVisionMedia['nom'];
         }
 
         try {
@@ -511,11 +525,54 @@ class ControleurModule extends Controleur
             $_SESSION['candidat_message_succes'] = 'Candidat modifie avec succes.';
         } catch (\Throwable $exception) {
             $_SESSION['candidat_message_erreur'] = 'Modification du candidat impossible : ' . $exception->getMessage();
+            $this->retirerMediasCandidatDesDonnees($donnees);
             $_SESSION['candidat_anciennes_donnees'] = $donnees;
             rediriger('/super-administrateur/candidats?modifier_id=' . $candidatId);
         }
 
         rediriger('/super-administrateur/candidats?election_id=' . urlencode((string) ($donnees['election_id'] ?? '')));
+    }
+
+    public function remplacerPhotoCandidat(): void
+    {
+        $utilisateur = ServiceAuthentification::exigerRole(ServiceReglesMetier::ROLE_SUPER_ADMINISTRATEUR);
+        $candidatId = (int) ($_POST['candidat_id'] ?? 0);
+        $erreurs = [];
+
+        if ($candidatId <= 0) {
+            $_SESSION['candidat_message_erreur'] = 'Candidat invalide.';
+            rediriger('/super-administrateur/candidats');
+        }
+
+        $photoMedia = $this->deposerImageCandidat('photo_candidat', 'candidats', $erreurs);
+
+        if ($photoMedia === null && empty($erreurs)) {
+            $erreurs['photo_candidat'] = 'Choisis une photo avant de valider.';
+        }
+
+        if (!empty($erreurs)) {
+            $_SESSION['candidat_message_erreur'] = $erreurs['photo_candidat'] ?? "La photo n'a pas pu etre enregistree.";
+            rediriger('/super-administrateur/candidats');
+        }
+
+        try {
+            (new Candidat())->remplacerPhoto($candidatId, $photoMedia, (int) $utilisateur['id']);
+            $_SESSION['candidat_message_succes'] = 'Photo du candidat mise a jour.';
+        } catch (\Throwable $exception) {
+            $_SESSION['candidat_message_erreur'] = 'Mise a jour de la photo impossible : ' . $exception->getMessage();
+        }
+
+        rediriger('/super-administrateur/candidats');
+    }
+
+    public function afficherPhotoCandidat(): void
+    {
+        $this->afficherMediaCandidat('photo');
+    }
+
+    public function afficherImageVisionCandidat(): void
+    {
+        $this->afficherMediaCandidat('image_vision');
     }
 
     public function superAdminModifierEtudiant(): void
@@ -1392,7 +1449,50 @@ class ControleurModule extends Controleur
         return $erreurs;
     }
 
-    private function deposerImageCandidat(string $champ, string $dossier, array &$erreurs): ?string
+    private function afficherMediaCandidat(string $type): void
+    {
+        $candidatId = (int) ($_GET['id'] ?? 0);
+        if ($candidatId <= 0) {
+            http_response_code(404);
+            return;
+        }
+
+        $media = (new Candidat())->trouverMedia($candidatId, $type);
+        if (!$media) {
+            http_response_code(404);
+            return;
+        }
+
+        $contenu = base64_decode((string) $media['base64'], true);
+        $typeMime = (string) ($media['type_mime'] ?? '');
+        $typesAutorises = ['image/jpeg', 'image/png', 'image/webp'];
+
+        if ($contenu === false || !in_array($typeMime, $typesAutorises, true)) {
+            http_response_code(404);
+            return;
+        }
+
+        header('Content-Type: ' . $typeMime);
+        header('Content-Length: ' . strlen($contenu));
+        header('Cache-Control: public, max-age=86400');
+        header('X-Content-Type-Options: nosniff');
+        echo $contenu;
+        exit;
+    }
+
+    private function retirerMediasCandidatDesDonnees(array &$donnees): void
+    {
+        unset(
+            $donnees['photo_base64'],
+            $donnees['photo_type_mime'],
+            $donnees['photo_nom'],
+            $donnees['image_vision_base64'],
+            $donnees['image_vision_type_mime'],
+            $donnees['image_vision_nom']
+        );
+    }
+
+    private function deposerImageCandidat(string $champ, string $_dossier, array &$erreurs): ?array
     {
         if (empty($_FILES[$champ]) || ($_FILES[$champ]['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
             return null;
@@ -1416,20 +1516,25 @@ class ControleurModule extends Controleur
             return null;
         }
 
-        $dossierPublic = CHEMIN_RACINE . '/public/uploads/' . $dossier;
-        if (!is_dir($dossierPublic)) {
-            mkdir($dossierPublic, 0775, true);
-        }
-
-        $nomFichier = date('Ymd_His') . '_' . bin2hex(random_bytes(8)) . '.' . $extension;
-        $destination = $dossierPublic . '/' . $nomFichier;
-
-        if (!move_uploaded_file((string) $fichier['tmp_name'], $destination)) {
-            $erreurs[$champ] = "Impossible d'enregistrer l'image.";
+        $typeMime = mime_content_type((string) $fichier['tmp_name']) ?: '';
+        if (!in_array($typeMime, ['image/jpeg', 'image/png', 'image/webp'], true)) {
+            $erreurs[$champ] = 'Le fichier choisi ne semble pas etre une image valide.';
             return null;
         }
 
-        return '/uploads/' . $dossier . '/' . $nomFichier;
+        $contenu = file_get_contents((string) $fichier['tmp_name']);
+        if ($contenu === false) {
+            $erreurs[$champ] = "Impossible de lire l'image.";
+            return null;
+        }
+
+        $nomOriginal = preg_replace('/[^A-Za-z0-9_.-]/', '_', (string) ($fichier['name'] ?? 'image.' . $extension));
+
+        return [
+            'base64' => base64_encode($contenu),
+            'type_mime' => $typeMime,
+            'nom' => $nomOriginal !== '' ? $nomOriginal : 'image.' . $extension,
+        ];
     }
 
     private function donneesEtudiantDepuisPost(): array

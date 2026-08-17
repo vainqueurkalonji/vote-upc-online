@@ -34,6 +34,8 @@ $routeur->get('/mot-de-passe-oublie/reinitialiser', [ControleurAuthentification:
 $routeur->post('/mot-de-passe-oublie/reinitialiser', [ControleurAuthentification::class, 'reinitialiserMotDePasse']);
 $routeur->get('/mot-de-passe-temporaire/changer', [ControleurModule::class, 'motDePasseTemporaire']);
 $routeur->post('/mot-de-passe-temporaire/changer', [ControleurModule::class, 'changerMotDePasseTemporaire']);
+$routeur->get('/candidats/photo', [ControleurModule::class, 'afficherPhotoCandidat']);
+$routeur->get('/candidats/image-vision', [ControleurModule::class, 'afficherImageVisionCandidat']);
 
 $routeur->get('/super-administrateur/tableau-de-bord', [ControleurTableauDeBord::class, 'afficher']);
 $routeur->get('/super-administrateur/etudiants', [ControleurModule::class, 'superAdminEtudiants']);
@@ -53,6 +55,7 @@ $routeur->post('/super-administrateur/presidents-electoraux/modifier', [Controle
 $routeur->get('/super-administrateur/candidats', [ControleurModule::class, 'superAdminCandidats']);
 $routeur->post('/super-administrateur/candidats', [ControleurModule::class, 'enregistrerCandidat']);
 $routeur->post('/super-administrateur/candidats/modifier', [ControleurModule::class, 'modifierCandidat']);
+$routeur->post('/super-administrateur/candidats/photo', [ControleurModule::class, 'remplacerPhotoCandidat']);
 $routeur->get('/super-administrateur/elections', [ControleurModule::class, 'superAdminElections']);
 $routeur->post('/super-administrateur/elections', [ControleurModule::class, 'enregistrerElection']);
 $routeur->post('/super-administrateur/elections/lancer', [ControleurModule::class, 'demanderLancementElection']);

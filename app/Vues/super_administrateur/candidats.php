@@ -281,6 +281,11 @@ $sexeAffiche = static fn(?string $sexe): string => $sexe === 'F' ? 'Femme' : ($s
                             <?php else: ?>
                                 <span class="badge-statut">Verrouille apres lancement</span>
                             <?php endif; ?>
+                            <form method="post" action="/super-administrateur/candidats/photo" enctype="multipart/form-data" class="formulaire-ligne">
+                                <input type="hidden" name="candidat_id" value="<?= e($candidat['id']) ?>">
+                                <input type="file" name="photo_candidat" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" required>
+                                <button type="submit" class="bouton-tableau">Mettre photo</button>
+                            </form>
                         </div>
                     </div>
                 </article>

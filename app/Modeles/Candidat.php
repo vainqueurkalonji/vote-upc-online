@@ -138,11 +138,19 @@ class Candidat extends Modele
                 c.post_nom,
                 c.prenom,
                 c.sexe,
-                c.photo_chemin,
+                CASE
+                    WHEN c.photo_base64 IS NOT NULL AND c.photo_base64 <> ''
+                    THEN '/candidats/photo?id=' || c.id::text
+                    ELSE c.photo_chemin
+                END AS photo_chemin,
                 c.biographie,
                 c.slogan,
                 c.vision,
-                c.image_vision_chemin,
+                CASE
+                    WHEN c.image_vision_base64 IS NOT NULL AND c.image_vision_base64 <> ''
+                    THEN '/candidats/image-vision?id=' || c.id::text
+                    ELSE c.image_vision_chemin
+                END AS image_vision_chemin,
                 c.statut,
                 c.election_id,
                 c.cree_le,
@@ -202,11 +210,19 @@ class Candidat extends Modele
                     c.post_nom,
                     c.prenom,
                     c.sexe,
-                    c.photo_chemin,
+                    CASE
+                        WHEN c.photo_base64 IS NOT NULL AND c.photo_base64 <> ''
+                        THEN '/candidats/photo?id=' || c.id::text
+                        ELSE c.photo_chemin
+                    END AS photo_chemin,
                     c.biographie,
                     c.slogan,
                     c.vision,
-                    c.image_vision_chemin,
+                    CASE
+                        WHEN c.image_vision_base64 IS NOT NULL AND c.image_vision_base64 <> ''
+                        THEN '/candidats/image-vision?id=' || c.id::text
+                        ELSE c.image_vision_chemin
+                    END AS image_vision_chemin,
                     c.statut,
                     f.code AS faculte_code,
                     p.code AS promotion_code,
@@ -255,10 +271,16 @@ class Candidat extends Modele
                     prenom,
                     sexe,
                     photo_chemin,
+                    photo_base64,
+                    photo_type_mime,
+                    photo_nom,
                     biographie,
                     slogan,
                     vision,
                     image_vision_chemin,
+                    image_vision_base64,
+                    image_vision_type_mime,
+                    image_vision_nom,
                     statut,
                     cree_par,
                     cree_le
@@ -272,10 +294,16 @@ class Candidat extends Modele
                     :prenom,
                     :sexe,
                     :photo_chemin,
+                    :photo_base64,
+                    :photo_type_mime,
+                    :photo_nom,
                     :biographie,
                     :slogan,
                     :vision,
                     :image_vision_chemin,
+                    :image_vision_base64,
+                    :image_vision_type_mime,
+                    :image_vision_nom,
                     'actif',
                     :cree_par,
                     NOW()
@@ -293,14 +321,26 @@ class Candidat extends Modele
                 'prenom' => $donnees['prenom'],
                 'sexe' => $donnees['sexe'],
                 'photo_chemin' => $donnees['photo_chemin'] ?? null,
+                'photo_base64' => $donnees['photo_base64'] ?? null,
+                'photo_type_mime' => $donnees['photo_type_mime'] ?? null,
+                'photo_nom' => $donnees['photo_nom'] ?? null,
                 'biographie' => $donnees['biographie'],
                 'slogan' => $donnees['slogan'],
                 'vision' => $donnees['vision'],
                 'image_vision_chemin' => $donnees['image_vision_chemin'] ?? null,
+                'image_vision_base64' => $donnees['image_vision_base64'] ?? null,
+                'image_vision_type_mime' => $donnees['image_vision_type_mime'] ?? null,
+                'image_vision_nom' => $donnees['image_vision_nom'] ?? null,
                 'cree_par' => $creePar,
             ]);
 
             $candidatId = (int) $requete->fetch()['id'];
+            $this->mettreAJourCheminsMedias(
+                $candidatId,
+                !empty($donnees['photo_base64']),
+                !empty($donnees['image_vision_base64'])
+            );
+
             $this->journaliser($creePar, $candidatId, [
                 'faculte_id' => $faculteId,
                 'promotion_id' => $promotionId,
@@ -366,8 +406,16 @@ class Candidat extends Modele
         $this->verifierPorteeAcademique($faculteId, $promotionId, $departementId);
         $election = $this->verifierPorteeElectionCandidat($donnees);
 
-        $photoChemin = $donnees['photo_chemin'] ?? $candidat['photo_chemin'] ?? null;
-        $imageVisionChemin = $donnees['image_vision_chemin'] ?? $candidat['image_vision_chemin'] ?? null;
+        $photoEstRemplacee = array_key_exists('photo_base64', $donnees);
+        $imageVisionEstRemplacee = array_key_exists('image_vision_base64', $donnees);
+        $photoChemin = $photoEstRemplacee ? '/candidats/photo?id=' . $candidatId : ($candidat['photo_chemin'] ?? null);
+        $imageVisionChemin = $imageVisionEstRemplacee ? '/candidats/image-vision?id=' . $candidatId : ($candidat['image_vision_chemin'] ?? null);
+        $photoBase64 = $photoEstRemplacee ? ($donnees['photo_base64'] ?? null) : ($candidat['photo_base64'] ?? null);
+        $photoTypeMime = $photoEstRemplacee ? ($donnees['photo_type_mime'] ?? null) : ($candidat['photo_type_mime'] ?? null);
+        $photoNom = $photoEstRemplacee ? ($donnees['photo_nom'] ?? null) : ($candidat['photo_nom'] ?? null);
+        $imageVisionBase64 = $imageVisionEstRemplacee ? ($donnees['image_vision_base64'] ?? null) : ($candidat['image_vision_base64'] ?? null);
+        $imageVisionTypeMime = $imageVisionEstRemplacee ? ($donnees['image_vision_type_mime'] ?? null) : ($candidat['image_vision_type_mime'] ?? null);
+        $imageVisionNom = $imageVisionEstRemplacee ? ($donnees['image_vision_nom'] ?? null) : ($candidat['image_vision_nom'] ?? null);
 
         $requete = $this->db->prepare(
             "UPDATE candidats
@@ -380,10 +428,16 @@ class Candidat extends Modele
                  prenom = :prenom,
                  sexe = :sexe,
                  photo_chemin = :photo_chemin,
+                 photo_base64 = :photo_base64,
+                 photo_type_mime = :photo_type_mime,
+                 photo_nom = :photo_nom,
                  biographie = :biographie,
                  slogan = :slogan,
                  vision = :vision,
                  image_vision_chemin = :image_vision_chemin,
+                 image_vision_base64 = :image_vision_base64,
+                 image_vision_type_mime = :image_vision_type_mime,
+                 image_vision_nom = :image_vision_nom,
                  modifie_le = NOW()
              WHERE id = :id"
         );
@@ -398,10 +452,16 @@ class Candidat extends Modele
             'prenom' => $donnees['prenom'],
             'sexe' => $donnees['sexe'],
             'photo_chemin' => $photoChemin,
+            'photo_base64' => $photoBase64,
+            'photo_type_mime' => $photoTypeMime,
+            'photo_nom' => $photoNom,
             'biographie' => $donnees['biographie'],
             'slogan' => $donnees['slogan'],
             'vision' => $donnees['vision'],
             'image_vision_chemin' => $imageVisionChemin,
+            'image_vision_base64' => $imageVisionBase64,
+            'image_vision_type_mime' => $imageVisionTypeMime,
+            'image_vision_nom' => $imageVisionNom,
         ]);
 
         $this->journaliser($modifiePar, $candidatId, [
@@ -454,6 +514,77 @@ class Candidat extends Modele
         }
 
         return $election;
+    }
+
+    public function remplacerPhoto(int $candidatId, array $media, int $modifiePar): void
+    {
+        $candidat = $this->trouverPourModification($candidatId);
+
+        if (!$candidat) {
+            throw new RuntimeException('Candidat introuvable.');
+        }
+
+        $requete = $this->db->prepare(
+            "UPDATE candidats
+             SET photo_chemin = :photo_chemin,
+                 photo_base64 = :photo_base64,
+                 photo_type_mime = :photo_type_mime,
+                 photo_nom = :photo_nom,
+                 modifie_le = NOW()
+             WHERE id = :id
+             AND statut <> 'supprime'"
+        );
+        $requete->execute([
+            'id' => $candidatId,
+            'photo_chemin' => '/candidats/photo?id=' . $candidatId,
+            'photo_base64' => $media['base64'] ?? null,
+            'photo_type_mime' => $media['type_mime'] ?? null,
+            'photo_nom' => $media['nom'] ?? null,
+        ]);
+
+        $this->journaliser($modifiePar, $candidatId, [
+            'action' => 'remplacement_photo_candidat',
+        ], 'modification_candidat');
+    }
+
+    public function trouverMedia(int $candidatId, string $type): ?array
+    {
+        $champs = match ($type) {
+            'photo' => [
+                'base64' => 'photo_base64',
+                'type_mime' => 'photo_type_mime',
+                'nom' => 'photo_nom',
+            ],
+            'image_vision' => [
+                'base64' => 'image_vision_base64',
+                'type_mime' => 'image_vision_type_mime',
+                'nom' => 'image_vision_nom',
+            ],
+            default => null,
+        };
+
+        if ($champs === null) {
+            return null;
+        }
+
+        $requete = $this->db->prepare(
+            "SELECT
+                {$champs['base64']} AS base64,
+                {$champs['type_mime']} AS type_mime,
+                {$champs['nom']} AS nom
+             FROM candidats
+             WHERE id = :id
+             AND statut <> 'supprime'
+             LIMIT 1"
+        );
+        $requete->execute(['id' => $candidatId]);
+        $media = $requete->fetch();
+
+        if (!$media || empty($media['base64'])) {
+            return null;
+        }
+
+        return $media;
     }
 
     private function trouverElectionPourCandidat(int $electionId): ?array
@@ -532,5 +663,30 @@ class Candidat extends Modele
             'entite_id' => $candidatId,
             'details' => json_encode($details, JSON_THROW_ON_ERROR),
         ]);
+    }
+
+    private function mettreAJourCheminsMedias(int $candidatId, bool $aPhoto, bool $aImageVision): void
+    {
+        $champs = [];
+        $parametres = ['id' => $candidatId];
+
+        if ($aPhoto) {
+            $champs[] = 'photo_chemin = :photo_chemin';
+            $parametres['photo_chemin'] = '/candidats/photo?id=' . $candidatId;
+        }
+
+        if ($aImageVision) {
+            $champs[] = 'image_vision_chemin = :image_vision_chemin';
+            $parametres['image_vision_chemin'] = '/candidats/image-vision?id=' . $candidatId;
+        }
+
+        if (empty($champs)) {
+            return;
+        }
+
+        $requete = $this->db->prepare(
+            'UPDATE candidats SET ' . implode(', ', $champs) . ', modifie_le = NOW() WHERE id = :id'
+        );
+        $requete->execute($parametres);
     }
 }

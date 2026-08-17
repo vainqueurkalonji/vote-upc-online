@@ -1,0 +1,11 @@
+BEGIN;
+
+ALTER TABLE candidats
+    ADD COLUMN IF NOT EXISTS photo_base64 TEXT,
+    ADD COLUMN IF NOT EXISTS photo_type_mime VARCHAR(100),
+    ADD COLUMN IF NOT EXISTS photo_nom VARCHAR(255),
+    ADD COLUMN IF NOT EXISTS image_vision_base64 TEXT,
+    ADD COLUMN IF NOT EXISTS image_vision_type_mime VARCHAR(100),
+    ADD COLUMN IF NOT EXISTS image_vision_nom VARCHAR(255);
+
+COMMIT;
