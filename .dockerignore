@@ -1,0 +1,8 @@
+.env
+.git
+vendor
+node_modules
+tmp
+stockage/imports
+public/uploads/candidats
+*.log

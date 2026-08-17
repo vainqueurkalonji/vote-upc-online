@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: vote-upc-en-ligne
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /
+    preDeployCommand: php scripts/migrer_render.php
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_LANGUE
+        value: fr
+      - key: APP_NOM
+        value: VOTE UPC ONLINE
+      - key: APP_FUSEAU_HORAIRE
+        value: Africa/Kinshasa
+      - key: DATABASE_URL
+        fromDatabase:
+          name: vote-upc-db
+          property: connectionString
+      - key: MAIL_TRANSPORT
+        value: mail
+      - key: MAIL_ADRESSE_EXPEDITEUR
+        value: noreply@vote-upc-online.cd
+      - key: MAIL_NOM_EXPEDITEUR
+        value: VOTE UPC ONLINE
+
+databases:
+  - name: vote-upc-db
+    plan: free
+    region: frankfurt
+    databaseName: vote_upc
+    user: vote_upc
