@@ -18,7 +18,7 @@ Ce projet est une application PHP + PostgreSQL. Le deploiement Render le plus si
 - Lance PHP 8.3 avec Apache.
 - Pointe Apache vers `public`.
 - Installe les extensions PHP necessaires a PostgreSQL et Excel.
-- Execute les migrations SQL avant le demarrage.
+- Execute les migrations SQL au demarrage du conteneur Render.
 - Charge les facultes et promotions initiales.
 - Connecte l'application a la base Render via `DATABASE_URL`.
 

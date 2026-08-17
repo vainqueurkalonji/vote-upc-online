@@ -7,7 +7,6 @@ services:
     dockerfilePath: ./Dockerfile
     dockerContext: .
     healthCheckPath: /
-    preDeployCommand: php scripts/migrer_render.php
     envVars:
       - key: APP_ENV
         value: production
