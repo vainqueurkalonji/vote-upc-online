@@ -24,7 +24,7 @@ class ControleurInstallation extends Controleur
             rediriger('/administration/connexion');
         }
 
-        rediriger('/installation/super-administrateur');
+        $this->afficherCreationSuperAdministrateur();
     }
 
     public function afficherCreationSuperAdministrateur(): void

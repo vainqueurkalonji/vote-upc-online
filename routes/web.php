@@ -9,6 +9,7 @@ use Application\Controleurs\ControleurModule;
 use Application\Controleurs\SuperAdministrateur\ControleurTableauDeBord;
 
 $routeur->get('/', [ControleurInstallation::class, 'accueil']);
+$routeur->post('/', [ControleurInstallation::class, 'enregistrerSuperAdministrateur']);
 
 $routeur->get('/langue', [ControleurLangue::class, 'changer']);
 

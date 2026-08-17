@@ -23,7 +23,7 @@
         <?php endif; ?>
     <?php endforeach; ?>
 
-    <form method="post" action="/installation/super-administrateur" class="formulaire" novalidate>
+    <form method="post" action="/" class="formulaire" novalidate>
         <div class="grille-formulaire">
             <label>
                 <span><?= e(traduire('champ.nom')) ?></span>
