@@ -39,7 +39,23 @@ class Election extends Modele
         $requete = $this->db->query(
             "SELECT
                 COUNT(id) AS total,
-                SUM(CASE WHEN statut = 'en_attente_validation_lancement' THEN 1 ELSE 0 END) AS a_valider,
+                SUM(
+                    CASE
+                        WHEN statut = 'en_attente_validation_lancement'
+                            OR (
+                                statut = 'brouillon'
+                                AND date_fin > NOW()
+                                AND EXISTS (
+                                    SELECT 1
+                                    FROM candidats c
+                                    WHERE c.election_id = elections.id
+                                    AND c.statut = 'actif'
+                                )
+                            )
+                        THEN 1
+                        ELSE 0
+                    END
+                ) AS a_valider,
                 SUM(CASE WHEN statut = 'ouverte' THEN 1 ELSE 0 END) AS ouvertes,
                 SUM(CASE WHEN statut = 'en_attente_publication' THEN 1 ELSE 0 END) AS a_publier,
                 SUM(CASE WHEN statut = 'publiee' THEN 1 ELSE 0 END) AS publiees,
@@ -199,7 +215,42 @@ class Election extends Modele
     {
         $this->normaliserStatuts();
 
-        return $this->listerParStatuts(['en_attente_validation_lancement']);
+        $requete = $this->db->prepare(
+            "SELECT
+                e.id,
+                e.nom,
+                e.description,
+                e.portee_type,
+                e.date_debut,
+                e.date_fin,
+                e.statut,
+                f.code AS faculte_code,
+                p.code AS promotion_code,
+                COUNT(c.id) AS total_candidats
+             FROM elections e
+             LEFT JOIN facultes f ON f.id = e.faculte_id
+             LEFT JOIN promotions p ON p.id = e.promotion_id
+             LEFT JOIN candidats c ON c.election_id = e.id AND c.statut = 'actif'
+             WHERE e.statut = 'en_attente_validation_lancement'
+                OR (
+                    e.statut = 'brouillon'
+                    AND e.date_fin > :maintenant
+                    AND EXISTS (
+                        SELECT 1
+                        FROM candidats c2
+                        WHERE c2.election_id = e.id
+                        AND c2.statut = 'actif'
+                    )
+                )
+             GROUP BY e.id, f.code, p.code
+             ORDER BY
+                CASE WHEN e.statut = 'en_attente_validation_lancement' THEN 0 ELSE 1 END,
+                e.date_debut DESC,
+                e.id DESC"
+        );
+        $requete->execute(['maintenant' => date('Y-m-d H:i:s')]);
+
+        return $requete->fetchAll();
     }
 
     public function demanderValidationLancement(int $electionId, int $utilisateurId): void
@@ -420,6 +471,16 @@ class Election extends Modele
 
         if (!$election || !ServiceReglesMetier::presidentPeutValiderLancement($election)) {
             throw new RuntimeException("Cette election n'est pas en attente de validation.");
+        }
+
+        if ($decision === 'valide') {
+            if (strtotime((string) $election['date_fin']) <= time()) {
+                throw new RuntimeException("Cette election est deja terminee et ne peut plus etre lancee.");
+            }
+
+            if ($this->compterCandidatsElection($electionId) <= 0) {
+                throw new RuntimeException("Ajoutez au moins un candidat avant de valider le lancement.");
+            }
         }
 
         $nouveauStatut = $decision === 'valide'

@@ -1,3 +1,22 @@
+<?php
+$statutElectionPresident = static function (array $election): string {
+    $statut = (string) ($election['statut'] ?? '');
+
+    if ($statut === 'brouillon') {
+        $dateFinFuture = strtotime((string) ($election['date_fin'] ?? '')) > time();
+        $aDesCandidats = (int) ($election['total_candidats'] ?? 0) > 0;
+
+        return $dateFinFuture && $aDesCandidats ? 'Pret a valider' : 'En preparation';
+    }
+
+    if ($statut === 'en_attente_validation_lancement') {
+        return 'En attente du president';
+    }
+
+    return $statut;
+};
+?>
+
 <section class="entete-page entete-page-module">
     <div>
         <p class="surtitre">President electoral</p>
@@ -89,7 +108,7 @@
                             <td><?= e($election['portee_type'] . (!empty($election['faculte_code']) ? ' - ' . $election['faculte_code'] : '')) ?></td>
                             <td><?= e($election['date_debut']) ?></td>
                             <td><?= e($election['date_fin']) ?></td>
-                            <td><span class="badge-statut"><?= e($election['statut']) ?></span></td>
+                            <td><span class="badge-statut"><?= e($statutElectionPresident($election)) ?></span></td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>

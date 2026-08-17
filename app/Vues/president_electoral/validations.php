@@ -1,3 +1,17 @@
+<?php
+$statutAffiche = static function (array $election): string {
+    if (($election['statut'] ?? '') === 'brouillon') {
+        return 'Pret a valider';
+    }
+
+    if (($election['statut'] ?? '') === 'en_attente_validation_lancement') {
+        return 'En attente du president';
+    }
+
+    return (string) ($election['statut'] ?? '');
+};
+?>
+
 <section class="entete-page entete-page-module">
     <div>
         <p class="surtitre">President electoral</p>
@@ -23,6 +37,7 @@
                         <span><?= e($election['date_debut']) ?></span>
                         <span><?= e($election['date_fin']) ?></span>
                         <span><?= e($election['total_candidats'] ?? 0) ?> candidat(s)</span>
+                        <span class="badge-statut"><?= e($statutAffiche($election)) ?></span>
                     </div>
                 </div>
                 <form method="post" action="/president-electoral/elections/validations" class="formulaire formulaire-decision">

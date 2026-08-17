@@ -144,7 +144,10 @@ final class ServiceReglesMetier
 
     public static function presidentPeutValiderLancement(array $election): bool
     {
-        return ($election['statut'] ?? null) === self::STATUT_ELECTION_ATTENTE_LANCEMENT;
+        return in_array($election['statut'] ?? null, [
+            self::STATUT_ELECTION_ATTENTE_LANCEMENT,
+            self::STATUT_ELECTION_BROUILLON,
+        ], true);
     }
 
     public static function presidentPeutPublierResultats(array $election, bool $resultatsCalcules): bool
