@@ -444,6 +444,10 @@ class ControleurAuthentification extends Controleur
                 return;
             }
 
+            if (!ServiceAuthentification::otpConnexionActif()) {
+                $this->connecterApresMotDePasse($modeleUtilisateur, $utilisateur, $typeConnexion, 'otp_desactive_par_configuration');
+            }
+
             if (ServiceAuthentification::otpValideRecemment($utilisateur, $typeConnexion)) {
                 $this->connecterApresMotDePasse($modeleUtilisateur, $utilisateur, $typeConnexion);
             }
@@ -460,7 +464,7 @@ class ControleurAuthentification extends Controleur
         }
     }
 
-    private function connecterApresMotDePasse(Utilisateur $modeleUtilisateur, array $utilisateur, string $typeConnexion): never
+    private function connecterApresMotDePasse(Utilisateur $modeleUtilisateur, array $utilisateur, string $typeConnexion, string $methode = 'session_otp_valide'): never
     {
         $modeleUtilisateur->enregistrerConnexionReussie((int) $utilisateur['id']);
         $utilisateur['tentatives_connexion'] = 0;
@@ -468,7 +472,7 @@ class ControleurAuthentification extends Controleur
         ServiceAuthentification::marquerOtpValide($utilisateur, $typeConnexion);
         (new JournalActivite())->enregistrerPourRole($utilisateur, 'connexion_reussie', 'utilisateurs', (int) $utilisateur['id'], [
             'type_connexion' => $typeConnexion,
-            'methode' => 'session_otp_valide',
+            'methode' => $methode,
         ]);
 
         if ((bool) $utilisateur['mot_de_passe_temporaire']) {
@@ -567,6 +571,8 @@ class ControleurAuthentification extends Controleur
     {
         unset($donnees['mot_de_passe']);
 
+        $otpActif = ServiceAuthentification::otpConnexionActif();
+
         if ($typeConnexion === self::TYPE_ETUDIANT) {
             return [
                 'titre' => 'Connexion etudiant',
@@ -577,7 +583,9 @@ class ControleurAuthentification extends Controleur
                 'action_connexion' => '/etudiant/connexion',
                 'surtitre_connexion' => 'Espace etudiant',
                 'titre_connexion' => 'Connexion etudiant',
-                'description_connexion' => "Connectez-vous avec votre email ou votre matricule. L'OTP est demande a la connexion puis apres deconnexion.",
+                'description_connexion' => $otpActif
+                    ? "Connectez-vous avec votre email ou votre matricule. L'OTP est demande a la connexion puis apres deconnexion."
+                    : 'Connectez-vous avec votre email ou votre matricule.',
                 'identifiant_libelle' => 'Email ou matricule',
                 'identifiant_placeholder' => 'email@gmail.com ou matricule',
                 'bouton_connexion' => 'Se connecter',
@@ -593,7 +601,9 @@ class ControleurAuthentification extends Controleur
             'action_connexion' => '/administration/connexion',
             'surtitre_connexion' => 'Administration VOTE UPC ONLINE',
             'titre_connexion' => 'Connexion administration',
-            'description_connexion' => "Super administrateur, president electoral et appariteur utilisent cette entree. L'OTP est demande a la connexion puis apres deconnexion.",
+            'description_connexion' => $otpActif
+                ? "Super administrateur, president electoral et appariteur utilisent cette entree. L'OTP est demande a la connexion puis apres deconnexion."
+                : 'Super administrateur, president electoral et appariteur utilisent cette entree.',
             'identifiant_libelle' => 'Email ou nom utilisateur',
             'identifiant_placeholder' => 'email@gmail.com ou nom utilisateur',
             'bouton_connexion' => 'Se connecter',

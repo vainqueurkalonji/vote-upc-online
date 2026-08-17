@@ -16,6 +16,8 @@ services:
         value: VOTE UPC ONLINE
       - key: APP_FUSEAU_HORAIRE
         value: Africa/Kinshasa
+      - key: APP_OTP_CONNEXION_ACTIVE
+        value: false
       - key: DATABASE_URL
         fromDatabase:
           name: vote-upc-db

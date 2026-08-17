@@ -136,4 +136,11 @@ final class ServiceAuthentification
 
         return max(1, $minutes);
     }
+
+    public static function otpConnexionActif(): bool
+    {
+        $valeur = strtolower((string) env_valeur('APP_OTP_CONNEXION_ACTIVE', 'true'));
+
+        return in_array($valeur, ['1', 'true', 'yes', 'on', 'oui'], true);
+    }
 }
